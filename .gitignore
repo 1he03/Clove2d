@@ -32,3 +32,4 @@ saves/
 *.log
 
 /fonts/
+.cursor/
