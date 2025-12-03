@@ -107,7 +107,7 @@ Total: ~12-18 months
 **Goal:** Professional text layout
 
 **New Features:**
-- Text justification (Level 3)
+- Text justification (NEW: v0.1.0 has Left, Right, Center only)
 - Hyphenation support
 - Text on path
 - Text effects (outline, glow)

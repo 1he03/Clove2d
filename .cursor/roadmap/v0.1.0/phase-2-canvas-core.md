@@ -165,6 +165,7 @@ pub struct CanvasBuilder {
     width: Option<u32>,
     height: Option<u32>,
     background: Option<Color>,
+    font_manager: Option<FontManager>,  // Optional font manager
 }
 
 impl CanvasBuilder {
@@ -173,6 +174,7 @@ impl CanvasBuilder {
             width: None,
             height: None,
             background: None,
+            font_manager: None,
         }
     }
     
@@ -186,6 +188,13 @@ impl CanvasBuilder {
     /// Set background color
     pub fn background(mut self, color: Color) -> Self {
         self.background = Some(color);
+        self
+    }
+    
+    /// Set font manager (optional)
+    /// If set, all text drawing operations use this font manager
+    pub fn font_manager(mut self, font_manager: FontManager) -> Self {
+        self.font_manager = Some(font_manager);
         self
     }
     
@@ -204,6 +213,7 @@ impl CanvasBuilder {
             backend: TinySkiaBackend::new(width, height),
             layers: LayerManager::new(),
             state_stack: Vec::new(),
+            font_manager: self.font_manager,  // Store font manager in canvas
             width,
             height,
         };

@@ -12,12 +12,12 @@
 
 ```rust
 pub enum TextAlign {
-    Left,
-    Center,
-    Right,
-    Justify,          // Basic (v0.1.0)
-    JustifyAll,       // NEW: Justify last line too
-    JustifyDistribute, // NEW: Distribute evenly
+    Left,             // From v0.1.0
+    Center,           // From v0.1.0
+    Right,            // From v0.1.0
+    Justify,          // NEW in v0.2.0: Basic justification
+    JustifyAll,       // NEW in v0.2.0: Justify last line too
+    JustifyDistribute, // NEW in v0.2.0: Distribute evenly
 }
 ```
 

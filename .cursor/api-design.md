@@ -135,6 +135,7 @@ impl Canvas {
 impl CanvasBuilder {
     pub fn size(self, width: u32, height: u32) -> Self;
     pub fn background(self, color: Color) -> Self;
+    pub fn font_manager(self, font_manager: FontManager) -> Self;  // Optional font manager
     pub fn build(self) -> Result<Canvas>;
 }
 
@@ -260,9 +261,8 @@ impl TextBuilder<'_> {
     
     // Position & Alignment
     pub fn position(self, x: f32, y: f32) -> Self;
-    pub fn align(self, align: TextAlign) -> Self;
+    pub fn align(self, align: TextAlign) -> Self;  // Left, Right, Center only
     pub fn vertical_align(self, align: VerticalAlign) -> Self;
-    pub fn direction(self, dir: TextDirection) -> Self;
     
     // Styling
     pub fn color(self, color: Color) -> Self;
@@ -271,7 +271,7 @@ impl TextBuilder<'_> {
     pub fn background(self, color: Color) -> Self;
     
     // Layout
-    pub fn max_width(self, width: f32) -> Self;
+    pub fn width(self, width: TextWidth) -> Self;  // TextWidth enum
     pub fn line_height(self, height: f32) -> Self;
     pub fn letter_spacing(self, spacing: f32) -> Self;
     pub fn word_spacing(self, spacing: f32) -> Self;
@@ -280,8 +280,45 @@ impl TextBuilder<'_> {
     pub fn underline(self, enabled: bool) -> Self;
     pub fn strikethrough(self, enabled: bool) -> Self;
     
-    pub fn draw(self) -> Result<&'a mut Layer>;
+    pub fn draw(self) -> Result<&'a mut Layer>;  // Uses font_manager from canvas config
 }
+
+// TextWidth Enum
+pub enum TextWidth {
+    None,           // No clipping, width based on text content itself
+    Max(f32),       // Maximum width with clipping
+    FullPage,       // Full canvas/page width
+    Layer,          // Layer width (relative to layer x coordinate)
+}
+
+// TextAlign Enum (simplified)
+pub enum TextAlign {
+    Left,
+    Right,
+    Center,
+    // Justify removed - not supported
+}
+
+// Text Clipping Behavior:
+// - TextWidth::None: No clipping, text width determined by content
+// - TextWidth::Max(f32): Clipping at maximum width boundary
+// - TextWidth::FullPage: Clipping at canvas/page boundaries
+// - TextWidth::Layer: Clipping at layer boundaries (relative to layer x)
+// 
+// TextAlign is mandatory for all TextWidth modes (including None):
+// - Left: Align text to left edge of TextWidth area
+// - Right: Align text to right edge of TextWidth area  
+// - Center: Center text within TextWidth area
+// 
+// For TextWidth::Max with Center alignment:
+//   center_x = position.x + (max_width / 2)
+//   text_center = calculate_text_center(text_width)
+//   final_x = center_x - (text_center - position.x)
+// 
+// For TextWidth::Layer:
+//   - Uses layer x coordinate as starting point
+//   - Layer width determines clipping boundary
+//   - Alignment relative to layer position and width
 ```
 
 ### Image API
@@ -305,7 +342,45 @@ impl ImageBuilder<'_> {
 ### Layer API
 
 ```rust
+impl Canvas {
+    /// Create a layer with default dimensions (matches canvas size)
+    pub fn create_layer(&mut self, name: &str) -> Result<&mut Layer>;
+    
+    /// Create a layer with custom dimensions
+    pub fn create_layer_with_size(&mut self, name: &str, width: u32, height: u32) -> Result<&mut Layer>;
+    
+    /// Create a virtual layer for optimized composition
+    pub fn create_virtual_layer(&mut self, name: &str) -> Result<&mut VirtualLayer>;
+}
+
 impl Layer {
+    /// Set layer x coordinate (default: 0)
+    pub fn x(&mut self, x: f32) -> &mut Self;
+    
+    /// Set layer y coordinate (default: 0)
+    pub fn y(&mut self, y: f32) -> &mut Self;
+    
+    /// Set layer position (x, y coordinates)
+    pub fn position(&mut self, x: f32, y: f32) -> &mut Self;
+    
+    /// Set layer width. If not set, uses canvas width.
+    /// If set, scales layer content to match.
+    pub fn width(&mut self, width: u32) -> &mut Self;
+    
+    /// Set layer height. If not set, uses canvas height.
+    /// If set, scales layer content to match.
+    pub fn height(&mut self, height: u32) -> &mut Self;
+    
+    /// Set layer dimensions. If not set, uses canvas dimensions.
+    /// If set, scales layer content to match.
+    pub fn set_dimensions(&mut self, width: u32, height: u32) -> &mut Self;
+    
+    /// Get layer dimensions (returns canvas dimensions if not set)
+    pub fn dimensions(&self) -> (u32, u32);
+    
+    /// Get layer position (x, y coordinates)
+    pub fn position(&self) -> (f32, f32);
+    
     pub fn opacity(&mut self, opacity: f32) -> &mut Self;
     pub fn blend_mode(&mut self, mode: BlendMode) -> &mut Self;
     pub fn visible(&mut self, visible: bool) -> &mut Self;
@@ -313,6 +388,17 @@ impl Layer {
     pub fn rotate(&mut self, angle: f32) -> &mut Self;
     pub fn scale(&mut self, sx: f32, sy: f32) -> &mut Self;
     pub fn translate(&mut self, x: f32, y: f32) -> &mut Self;
+}
+
+impl VirtualLayer {
+    /// Begin virtual composition - operations stored, not rendered
+    pub fn begin_composition(&mut self) -> &mut Self;
+    
+    /// End composition and render all operations to image
+    pub fn end_composition(&mut self) -> Result<RgbaImage>;
+    
+    /// Add operation to virtual layer
+    pub fn add_operation(&mut self, operation: LayerOperation) -> &mut Self;
 }
 ```
 
@@ -384,6 +470,7 @@ fn main() -> Result<()> {
 
 ```rust
 use clove2d::prelude::*;
+use clove2d::canvas::text::TextWidth;
 
 fn main() -> Result<()> {
     // Setup fonts
@@ -394,26 +481,27 @@ fn main() -> Result<()> {
     let mut canvas = Canvas::builder()
         .size(800, 400)
         .background(Color::hex("#F5F5F5")?)
+        .font_manager(fonts)  // Set font manager in config
         .build()?;
     
     canvas.create_layer("text")?
         .draw_text("مرحباً بكم في Clove2d!")
             .font_family("TajawalBold")
-            .font_size(48)
+            .font_size(48.0)
             .color(Color::hex("#2C3E50")?)
-            .position(400, 150)
+            .position(400.0, 150.0)
             .align(TextAlign::Center)
-            .direction(TextDirection::RTL)
+            .width(TextWidth::FullPage)
             .stroke(Color::WHITE, 2.0)
-            .shadow(Color::rgba(0, 0, 0, 50), 2, 2, 4)
+            .shadow(Color::rgba(0, 0, 0, 50), 2.0, 2.0, 4.0)
             .draw()?
         .draw_text("مكتبة رسومات ثنائية الأبعاد بلغة Rust")
             .font_family("Tajawal")
-            .font_size(24)
+            .font_size(24.0)
             .color(Color::hex("#34495E")?)
-            .position(400, 220)
+            .position(400.0, 220.0)
             .align(TextAlign::Center)
-            .direction(TextDirection::RTL)
+            .width(TextWidth::FullPage)
             .draw()?;
     
     canvas.save("arabic_text.png")?;
@@ -425,6 +513,7 @@ fn main() -> Result<()> {
 
 ```rust
 use clove2d::prelude::*;
+use clove2d::canvas::text::TextWidth;
 
 fn main() -> Result<()> {
     let mut fonts = FontManager::new();
@@ -433,6 +522,7 @@ fn main() -> Result<()> {
     let mut canvas = Canvas::builder()
         .size(600, 400)
         .background(Color::WHITE)
+        .font_manager(fonts)  // Set font manager in config
         .build()?;
     
     let long_text = "This is a very long text that will automatically \
@@ -443,12 +533,12 @@ fn main() -> Result<()> {
     canvas.create_layer("text")?
         .draw_text(long_text)
             .font_family("Roboto")
-            .font_size(18)
+            .font_size(18.0)
             .color(Color::BLACK)
-            .position(50, 50)
-            .max_width(500)
+            .position(50.0, 50.0)
+            .width(TextWidth::Max(500.0))  // Max width with clipping
             .line_height(1.5)
-            .align(TextAlign::Justify)
+            .align(TextAlign::Left)  // Only Left, Right, Center supported
             .draw()?;
     
     canvas.save("wrapped_text.png")?;
@@ -492,7 +582,7 @@ fn main() -> Result<()> {
         .size(800, 600)
         .build()?;
     
-    // Background layer
+    // Background layer (uses canvas dimensions)
     canvas.create_layer("background")?
         .draw_rect()
             .position(0, 0)
@@ -500,11 +590,11 @@ fn main() -> Result<()> {
             .fill(Color::hex("#2C3E50")?)
             .draw()?;
     
-    // Shapes layer
-    canvas.create_layer("shapes")?
+    // Shapes layer with custom dimensions (scaled)
+    canvas.create_layer_with_size("shapes", 400, 300)?
         .draw_circle()
-            .center(400, 300)
-            .radius(150)
+            .center(200, 150)
+            .radius(75)
             .fill(Color::rgba(255, 100, 100, 180))
             .draw()?
         .blend_mode(BlendMode::Multiply)
@@ -528,10 +618,43 @@ fn main() -> Result<()> {
 }
 ```
 
+### Example 6b: Virtual Layers for Performance
+
+```rust
+use clove2d::prelude::*;
+
+fn main() -> Result<()> {
+    let mut canvas = Canvas::builder()
+        .size(800, 600)
+        .build()?;
+    
+    // Use virtual layer for better performance
+    let mut virtual_layer = canvas.create_virtual_layer("composition")?;
+    virtual_layer.begin_composition();
+    
+    // Add operations (stored, not rendered yet)
+    virtual_layer
+        .add_operation(LayerOperation::DrawRect(Rect::new(0, 0, 800, 600), Color::hex("#2C3E50")?))
+        .add_operation(LayerOperation::DrawCircle(Circle::new(400, 300, 150), Color::rgba(255, 100, 100, 180)))
+        .add_operation(LayerOperation::DrawText(Text::new("Hello"), TextStyle::default()));
+    
+    // Render all operations in one pass
+    let image = virtual_layer.end_composition()?;
+    
+    canvas.draw_image(image)
+        .position(0, 0)
+        .draw()?;
+    
+    canvas.save("virtual_layered.png")?;
+    Ok(())
+}
+```
+
 ### Example 7: Complex Scene
 
 ```rust
 use clove2d::prelude::*;
+use clove2d::canvas::text::TextWidth;
 
 fn main() -> Result<()> {
     let mut fonts = FontManager::new();
@@ -541,49 +664,54 @@ fn main() -> Result<()> {
     let mut canvas = Canvas::builder()
         .size(1200, 800)
         .background(Color::hex("#ECEFF1")?)
+        .font_manager(fonts)  // Set font manager in config
         .build()?;
     
     // Gradient background
     canvas.create_layer("background")?
         .draw_rect()
-            .position(0, 0)
-            .size(1200, 800)
+            .position(0.0, 0.0)
+            .size(1200.0, 800.0)
             .fill(Color::linear_gradient()
-                .start(0, 0)
-                .end(1200, 800)
+                .start(0.0, 0.0)
+                .end(1200.0, 800.0)
                 .add_stop(0.0, Color::hex("#667EEA")?)
                 .add_stop(1.0, Color::hex("#764BA2")?)
                 .build())
             .draw()?;
     
-    // Card
+    // Card layer with position and dimensions
     canvas.create_layer("card")?
+        .position(300.0, 200.0)  // Layer x, y coordinates
+        .width(600)  // Layer width
+        .height(400)  // Layer height
         .draw_rect()
-            .position(300, 200)
-            .size(600, 400)
+            .position(0.0, 0.0)  // Relative to layer
+            .size(600.0, 400.0)
             .fill(Color::WHITE)
-            .corner_radius(20)
-            .shadow(Color::rgba(0, 0, 0, 30), 0, 10, 40)
+            .corner_radius(20.0)
+            .shadow(Color::rgba(0, 0, 0, 30), 0.0, 10.0, 40.0)
             .draw()?
         .draw_text("Clove2d")
             .font_family("Arial")
-            .font_size(64)
+            .font_size(64.0)
             .font_weight(FontWeight::Bold)
             .color(Color::hex("#2C3E50")?)
-            .position(600, 320)
+            .position(300.0, 120.0)  // Relative to layer
             .align(TextAlign::Center)
+            .width(TextWidth::Layer)  // Uses layer width
             .draw()?
         .draw_text("مكتبة رسومات احترافية")
             .font_family("Tajawal")
-            .font_size(32)
+            .font_size(32.0)
             .color(Color::hex("#667EEA")?)
-            .position(600, 400)
+            .position(300.0, 200.0)  // Relative to layer
             .align(TextAlign::Center)
-            .direction(TextDirection::RTL)
+            .width(TextWidth::Layer)  // Uses layer width
             .draw()?
         .draw_circle()
-            .center(600, 480)
-            .radius(30)
+            .center(300.0, 280.0)  // Relative to layer
+            .radius(30.0)
             .fill(Color::hex("#4CAF50")?)
             .draw()?;
     

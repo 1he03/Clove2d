@@ -16,7 +16,7 @@ v0.2.0 focuses on advanced text layout and styling capabilities.
 ### Key Features
 
 1. **Advanced Text Layout**
-   - Level 3 text justification
+   - Text justification (NEW: Left, Right, Center only in v0.1.0)
    - Better line breaking algorithms
    - Hyphenation support
    - Improved BiDi edge cases

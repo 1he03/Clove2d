@@ -159,9 +159,10 @@ Week 10:   Phase 6 - Filters & Polish
 - Stroke (outline)
 - Shadow effects
 - Background color
-- Alignment (left, center, right, justify)
+- Alignment (left, center, right only)
 - Vertical alignment (top, middle, bottom)
-- Direction (LTR, RTL, auto-detect)
+- Text width modes (None, Max, FullPage, Layer)
+- Automatic clipping based on TextWidth
 
 **Advanced Features:**
 - BiDi text support (unicode-bidi)
@@ -207,18 +208,22 @@ Week 10:   Phase 6 - Filters & Polish
 
 **Features:**
 - Create named layers
+- Layer dimensions (optional width/height with auto-scaling)
 - Layer visibility control
 - Layer opacity
 - Layer blend modes
 - Layer ordering (z-index)
-- Layer merging
+- Layer merging (parallel processing with rayon)
 - Layer deletion
+- Virtual layers for optimized composition
 
 **Acceptance Criteria:**
 - [ ] Can create 50+ layers
 - [ ] Layer order is preserved
 - [ ] Blend modes work correctly
-- [ ] Merging is efficient
+- [ ] Merging is efficient (parallel processing)
+- [ ] Layer dimensions scale correctly
+- [ ] Virtual layers render efficiently
 
 ---
 
@@ -268,10 +273,12 @@ Week 10:   Phase 6 - Filters & Polish
 
 **Performance:**
 - [ ] Create 800x600 canvas: <10ms
-- [ ] Draw 1000 shapes: <100ms
+- [ ] Draw 1000 shapes: <100ms (parallel processing)
 - [ ] Render complex Arabic text: <20ms
-- [ ] Apply blur filter: <30ms
+- [ ] Apply blur filter: <30ms (parallel processing, 3-5x faster)
 - [ ] Load 1920x1080 image: <100ms
+- [ ] Merge 10 layers: <50ms (parallel processing, 2-4x faster)
+- [ ] Virtual layer composition: <40ms (single-pass rendering)
 
 **Quality:**
 - [ ] Code coverage >80%
@@ -331,32 +338,36 @@ tiny-skia = "0.11"
 tiny-skia-path = "0.11"
 
 # Text
-cosmic-text = "0.12"
-rustybuzz = "0.18"
-unicode-bidi = "0.3"
-unicode-segmentation = "1.11"
+cosmic-text = "0.15.0"
+rustybuzz = "0.20.1"
+unicode-bidi = "0.3.18"
+unicode-segmentation = "1.12.0"
 
 # Image
-image = "0.25"
-png = "0.17"
+image = "0.25.9"
+png = "0.18.0"
 jpeg-decoder = "0.3"
-webp = "0.3"
+webp = "0.3.1"
 
 # Color
-palette = "0.7"
+palette = "0.7.6"
 
 # Math
-euclid = "0.22"
-kurbo = "0.11"
+euclid = "0.22.11"
+kurbo = "0.13.0"
 
 # Async (optional)
-tokio = { version = "1.40", optional = true }
-reqwest = { version = "0.12", optional = true }
+tokio = { version = "1.48.0", optional = true }
+reqwest = { version = "0.12.24", optional = true }
 
 # Utilities
-thiserror = "1.0"
-once_cell = "1.19"
-parking_lot = "0.12"
+thiserror = "2.0.17"
+once_cell = "1.21.3"
+parking_lot = "0.12.5"
+rayon = "1.11.0"
+ttf-parser = "0.25.1"
+cssparser = "0.36.0"
+regex = "1.12.2"
 ```
 
 ### Version Pinning

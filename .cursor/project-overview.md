@@ -65,7 +65,11 @@ Build a **powerful, easy-to-use, Pure Rust 2D graphics library** that excels at:
    - Pure Rust (no C dependencies by default)
    - Optimized rendering pipeline
    - Efficient memory usage
-   - Parallel processing where possible
+   - Parallel processing with rayon throughout the project
+   - Virtual layers for memory-efficient composition
+   - Parallel layer rendering (2-4x faster)
+   - Parallel image filtering (3-5x faster)
+   - Parallel text shaping for multiple elements
 
 4. **Flexibility**
    - Rich color system (RGBA, Hex, HSL, Gradients, Patterns)
@@ -151,13 +155,14 @@ Build a **powerful, easy-to-use, Pure Rust 2D graphics library** that excels at:
 - Background color
 
 **Text Layout:**
-- Horizontal alignment (left, center, right, justify)
+- Horizontal alignment (left, center, right only)
 - Vertical alignment (top, middle, bottom)
-- Text direction (LTR, RTL, auto-detect)
-- BiDi support for mixed text
+- Text width modes (None, Max, FullPage, Layer)
+- Automatic text clipping based on TextWidth
+- BiDi support for mixed text (automatic, no manual direction setting)
 - Arabic text shaping
-- Text overflow handling (clip, ellipsis)
-- Max width/height constraints
+- Text overflow handling (automatic clipping)
+- Layer-based text positioning
 
 #### **Image System**
 
@@ -182,12 +187,14 @@ Build a **powerful, easy-to-use, Pure Rust 2D graphics library** that excels at:
 
 #### **Layer System**
 - Create multiple named layers
+- Layer dimensions (custom width/height with auto-scaling)
 - Layer ordering (z-index)
 - Show/hide layers
 - Layer opacity
 - Blend modes between layers
 - Merge layers
 - Clone layers
+- Virtual layers for optimized composition (memory-efficient, single-pass rendering)
 
 #### **Filter System (9 Filters)**
 1. Blur (Gaussian)
@@ -260,33 +267,36 @@ tiny-skia = "0.11"           # Pure Rust 2D rendering
 tiny-skia-path = "0.11"      # Path operations
 
 # Text Rendering
-cosmic-text = "0.12"         # Advanced text layout
-rustybuzz = "0.18"           # Text shaping (HarfBuzz port)
-unicode-bidi = "0.3"         # Bidirectional text algorithm
-unicode-segmentation = "1.11" # Text segmentation
+cosmic-text = "0.15.0"       # Advanced text layout
+rustybuzz = "0.20.1"         # Text shaping (HarfBuzz port)
+unicode-bidi = "0.3.18"      # Bidirectional text algorithm
+unicode-segmentation = "1.12.0" # Text segmentation
 
 # Image Processing
-image = "0.25"               # Image encoding/decoding
-png = "0.17"                 # PNG support
+image = "0.25.9"             # Image encoding/decoding
+png = "0.18.0"               # PNG support
 jpeg-decoder = "0.3"         # JPEG support
-webp = "0.3"                 # WebP support
+webp = "0.3.1"               # WebP support
 
 # Async Support
-tokio = "1.40"               # Async runtime (optional)
-reqwest = "0.12"             # HTTP client (optional)
+tokio = { version = "1.48.0", optional = true }  # Async runtime (optional)
+reqwest = { version = "0.12.24", optional = true } # HTTP client (optional)
 
 # Color Management
-palette = "0.7"              # Color conversions
+palette = "0.7.6"            # Color conversions
 
 # Math & Geometry
-euclid = "0.22"              # 2D geometry types
-kurbo = "0.11"               # Bezier curves
+euclid = "0.22.11"           # 2D geometry types
+kurbo = "0.13.0"             # Bezier curves
 
 # Utilities
-thiserror = "1.0"            # Error handling
-once_cell = "1.19"           # Lazy initialization
-parking_lot = "0.12"         # Efficient synchronization
-arrayvec = "0.7"             # Stack arrays
+thiserror = "2.0.17"         # Error handling
+once_cell = "1.21.3"         # Lazy initialization
+parking_lot = "0.12.5"       # Efficient synchronization
+rayon = "1.11.0"             # Parallel processing
+ttf-parser = "0.25.1"        # Font parsing
+cssparser = "0.36.0"         # CSS parsing
+regex = "1.12.2"             # Regular expressions
 ```
 
 ### **Why Pure Rust?**

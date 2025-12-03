@@ -605,6 +605,37 @@ for pixel in &pixels {
 }
 ```
 
+### Parallel Processing with Rayon
+
+**Always use rayon for CPU-intensive operations:**
+
+```rust
+use rayon::prelude::*;
+
+// ✅ Good - Parallel processing for large datasets
+pub fn apply_filter_parallel(image: &mut RgbaImage, filter: &Filter) {
+    let chunks: Vec<_> = image.chunks_mut(4 * image.width() as usize).collect();
+    chunks.par_iter_mut()
+        .for_each(|chunk| filter.apply_to_chunk(chunk));
+}
+
+// ❌ Avoid - Sequential processing when parallel is possible
+pub fn apply_filter_sequential(image: &mut RgbaImage, filter: &Filter) {
+    for pixel in image.chunks_mut(4) {
+        filter.apply_to_pixel(pixel);
+    }
+}
+```
+
+**When to use parallel processing:**
+- ✅ Processing multiple layers
+- ✅ Applying filters to large images (>1000x1000)
+- ✅ Shaping multiple text elements
+- ✅ Pixel-level operations on large buffers
+- ❌ Small operations (<1000 elements)
+- ❌ Operations with dependencies between elements
+- ❌ Memory-constrained environments (use virtual layers instead)
+
 ### Benchmarking
 
 ```rust

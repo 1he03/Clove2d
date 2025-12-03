@@ -104,8 +104,9 @@ pub struct TextStyle {
     pub color: Color,
     pub letter_spacing: f32,
     pub line_height: f32,
-    pub align: TextAlign,
-    pub direction: TextDirection,
+    pub align: TextAlign,  // Left, Right, Center only
+    pub text_width: TextWidth,  // None, Max(f32), FullPage, Layer
+    // TextDirection removed - not supported
 }
 
 pub enum FontWeight {
@@ -119,13 +120,14 @@ pub enum TextAlign {
     Left,
     Center,
     Right,
-    Justify,
+    // Justify removed - not supported
 }
 
-pub enum TextDirection {
-    LTR,
-    RTL,
-    Auto,
+pub enum TextWidth {
+    None,      // No clipping, width based on text content
+    Max(f32),  // Maximum width with clipping
+    FullPage,  // Full canvas/page width
+    Layer,     // Layer width (relative to layer x coordinate)
 }
 ```
 
@@ -165,11 +167,20 @@ fn test_arabic_rendering() -> Result<()> {
     fonts.load("Tajawal", "assets/fonts/Tajawal-Regular.ttf")?;
     
     let mut canvas = Canvas::new(800, 400)?;
+    let mut fonts = FontManager::new();
+    fonts.load("Tajawal", "assets/fonts/Tajawal-Regular.ttf")?;
+    
+    let mut canvas = Canvas::builder()
+        .size(800, 400)
+        .font_manager(fonts)  // Set font manager in config
+        .build()?;
+    
     canvas.create_layer("text")?
         .draw_text("مرحباً بكم")
             .font_family("Tajawal")
-            .font_size(48)
-            .direction(TextDirection::RTL)
+            .font_size(48.0)
+            .align(TextAlign::Right)  // Use alignment instead of direction
+            .width(TextWidth::FullPage)
             .draw()?;
     
     canvas.save("arabic_test.png")?;
